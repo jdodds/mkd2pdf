@@ -1,0 +1,73 @@
+#!/bin/sh
+# originally by zecrazytux <zecrazytux@zecrazytux.net>
+# modifications and PKGBUILD by Jeremiah Dodds <jeremiah.dodds@gmail.com>
+# Released under the WTFPL (http://sam.zoy.org/wtfpl/COPYING)
+
+
+CSS="$(pwd)/style.css"
+# -- executables
+MARKDOWN="markdown"
+WKHTMLTOPDF="wkhtmltopdf"
+
+APPNAME=$(basename "${0}")
+usage () {
+    echo "usage ${APPNAME} [options] inputfile [outputfile]"
+    echo " general options:"
+    echo "    -m      which markdown interpreter to use (default markdown)"
+    echo "    -c      user style sheet. this should be an absolute path."
+    exit 1;
+}
+ # -- helpers
+ ok() {
+  echo -e "\033[1;32m$@\033[0m"
+}
+error() {
+  echo -e "$0: \033[1;31m$@\033[0m"
+  exit 1
+}
+
+while getopts 'm' arg; do
+    case "${arg}" in
+        m) MARKDOWN="${OPTARG}" ;;
+        c) CSS="${OPTARG}" ;;
+        *) echo "invalid argument '${arg}'"; usage 1 ;;
+    esac
+done
+# -- check usage, init variables
+if [ $# -lt 1 -o $# -gt 2 ]; then
+    usage 1
+fi
+INPUTFILE="$1"
+OUTPUTFILE=$(echo $INPUTFILE | sed -re 's/\.mk?d$//' -e 's/$/&.pdf/')
+[ -n "$2" ] && OUTPUTFILE="$2"
+{
+
+    cat << EOF
+<!DOCTYPE HTML>
+<html>
+<head>
+        <meta charset="utf-8">
+        <title>Curriculum Vitae</title>
+EOF
+    if [ -f "${CSS}" ]; then
+        cat <<EOF
+        <link rel=stylesheet type="text/css" href="${CSS}">
+EOF
+    fi
+
+    cat <<EOF
+</head>
+<body>
+EOF
+    $MARKDOWN $INPUTFILE || error "Error while converting markdown to xhtml"
+    cat << EOF
+</body>
+</html>
+EOF
+
+    # pipe the xhtml output to wkhtmltopdf to generate the PDF file
+} | $WKHTMLTOPDF - $OUTPUTFILE 2> /dev/null || error "Error while generating the PDF file"
+
+ok "Sucessfully generated $OUTPUTFILE from $INPUTFILE"
+
+exit 0
