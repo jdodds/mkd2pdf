@@ -26,17 +26,20 @@ error() {
   exit 1
 }
 
-while getopts 'm' arg; do
+while getopts 'm:c:' arg; do
     case "${arg}" in
         m) MARKDOWN="${OPTARG}" ;;
         c) CSS="${OPTARG}" ;;
         *) echo "invalid argument '${arg}'"; usage 1 ;;
     esac
 done
+shift $(($OPTIND -1))
+
 # -- check usage, init variables
 if [ $# -lt 1 -o $# -gt 2 ]; then
     usage 1
 fi
+
 INPUTFILE="$1"
 OUTPUTFILE=$(echo $INPUTFILE | sed -re 's/\.mk?d$//' -e 's/$/&.pdf/')
 [ -n "$2" ] && OUTPUTFILE="$2"
